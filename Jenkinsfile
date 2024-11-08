@@ -1,39 +1,68 @@
-pipeline {
+pipeline{
+
+environment {
+
+registry = "faiththough/carreact"
+
+        registryCredentials = "dockerhub_id"
+
+        dockerImage = ""
+
+    }
+
     agent any
 
-    stages {
-        stage('Checkout Frontend') {
-            steps {
-                // Checkout the frontend repository
-                git url: 'https://github.com/FaithThough/lbg-car-react-starter.git', branch: 'main'
-            }
-        }
+        stages {
 
-        stage('Build Frontend Docker Image') {
-            steps {
-                script {
-                    // Build the Docker image for frontend (React app)
-                    docker.build("${FRONTEND_IMAGE}")
-                }
-            }
-        }
+            stage ('Build Docker Image'){
 
-        stage('Push Frontend Image') {
-            steps {
-                script {
-                    // Push the frontend Docker image to Docker Hub (or any other registry)
-                    docker.withRegistry('https://index.docker.io/v1/', 'dockerhub-credentials') {
-                        docker.image("${FRONTEND_IMAGE}").push()
+                steps{
+
+                    script {
+
+                        dockerImage = docker.build(registry)
+
                     }
+
                 }
+
             }
+ 
+            stage ("Push to Docker Hub"){
+
+                steps {
+
+                    script {
+
+                        docker.withRegistry('', registryCredentials) {
+
+                            dockerImage.push("${env.BUILD_NUMBER}")
+
+                            dockerImage.push("latest")
+
+                        }
+
+                    }
+
+                }
+
+            }
+ 
+            stage ("Clean up"){
+
+                steps {
+
+                    script {
+
+                        sh 'docker image prune --all --force --filter "until=48h"'
+
+                           }
+
+                }
+
+            }
+
         }
 
-        stage('Deploy Frontend') {
-            steps {
-                // You can add your deployment logic here (e.g., deploy to AWS, Kubernetes, etc.)
-                echo 'Deploying Frontend...'
-            }
-        }
-    }
 }
+ 
